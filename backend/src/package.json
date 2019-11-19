@@ -1,0 +1,22 @@
+{
+  "name": "eass",
+  "version": "0.0.1",
+  "description": "Exchange as Service API Backend",
+  "main": "index.js",
+  "dependencies": {
+    "uuid": "^3.3.3",
+    "websocket": "^1.0.26"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "exchange",
+    "cryptocurrency",
+    "payment",
+    "bitex"
+  ],
+  "author": "wendel",
+  "license": "ISC"
+}

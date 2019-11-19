@@ -2,3 +2,4 @@ node_modules
 .bitex.private*
 packege-lock.json
 .idea
+.frontend/tls/*

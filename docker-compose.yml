@@ -1,0 +1,21 @@
+version: '3.1'
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    image: frontend:latest
+    restart: unless-stopped
+    network_mode: host # for simplicty
+    volumes:
+      - "./frontend:/frontend:rw" # change to rw=to after certs generated
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    image: backend:latest
+    restart: unless-stopped
+    network_mode: host # for simplicty
+    volumes:
+      - "./backend:/backend:rw" # change to rw=to after certs generated
+      - "../bitex.gg:/bitex.gg:ro" # to developer|testing mode
