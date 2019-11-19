@@ -1,0 +1,29 @@
+{
+  "name": "bitex.gg",
+  "version": "0.0.7",
+  "description": "BitEx - Exchange as Service",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon --legacy-watch -x 'node index.js' || touch index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitexgg/bitexgg.git"
+  },
+  "keywords": [
+    "websocket",
+    "cryptocurrency",
+    "bitex"
+  ],
+  "author": "bitex <talk-with@bitex.gg>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bitexgg/bitexgg/issues"
+  },
+  "homepage": "https://bitex.gg/",
+  "dependencies": {
+    "console-table-printer": "^1.1.19",
+    "uuid": "^3.3.3",
+    "websocket": "^1.0.26"
+  }
+}
