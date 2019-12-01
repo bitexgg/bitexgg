@@ -17,7 +17,7 @@
     "fs": "0.0.1-security",
     "helmet": "^3.21.2",
     "html-entities": "^1.2.1",
-    "http://localhost:9439/": "^0.0.8",
+    "bitexgg": "^0.0.8",
     "https": "^1.0.0",
     "ip-country": "^1.0.2",
     "passport-local": "^1.0.0",
