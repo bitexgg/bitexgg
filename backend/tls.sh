@@ -2,6 +2,8 @@
 
 . /home/admin/rc.conf
 
+mkdir -p /backend/tls || exit 1
+
 if [[ ! -f /backend/tls/dhparam.pem ]]; then
   openssl dhparam -out /backend/tls/dhparam.pem 2048
 fi
