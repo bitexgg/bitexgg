@@ -27,6 +27,7 @@
     "socket.io": "^2.3.0",
     "uuid": "^3.3.3",
     "websocket": "^1.0.30",
+    "http://localhost:9439/": "^0.0.8",
     "x509": "^0.3.4"
   },
   "devDependencies": {},
