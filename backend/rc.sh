@@ -7,6 +7,7 @@
 /home/admin/updater.sh &
 
 #!/bin/bash
+cd /backend/src && npm i
 
 if [[ -d /bitex.gg ]]; then
   rm -rf /backend/src/node_modules/bitex.gg
