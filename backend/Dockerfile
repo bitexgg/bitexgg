@@ -8,7 +8,10 @@ ENV TZ="America/Sao_Paulo" TERM="linux"
 RUN apt-get update -o=Dpkg::Use-Pty=0 && \
     apt-get install -o=Dpkg::Use-Pty=0  -y  \
     inotify-tools nodejs npm sudo && \
-    npm install -g forever
+    npm install -g forever nodemon
+
+# to store sessions
+VOLUME ["/tmp"]
 
 RUN useradd -o -m -u 1000 -d /home/admin -s /bin/bash admin && \
     mkdir -p /home/admin && \

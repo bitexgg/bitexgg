@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<% include partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <% include partials/header %>
+</header>
+
+<main>
+    <div class="row">
+        <div class="col-sm-8">
+            <% if(USERNAME){ %>
+                <ul class="list-group">
+                    <li class="list-group-item active">Wellcome <b><%= USERNAME %></b>, please choose one option:</li>
+                    <li class="list-group-item" aria-current="page"><a href="/accountBalances">
+                            <i class="fas fa-wallet"></i> Check your balances</a></li>
+                    <li class="list-group-item" aria-current="page"><a
+                                href="/Faucet?Symbol=BTCT&Amount=100">
+                            <i class="fas fa-hand-holding-usd"></i> BTCT Faucet (free test coins)</a>
+                        |
+                        <a href="/Faucet?Symbol=BIHT&Amount=100">
+                            <i class="fas fa-hand-holding-usd"></i> BIHT Faucet (free test coins)</a>
+                    </li>
+                </ul>
+            <% }else{ %>
+                <div class="jumbotron">
+                    <h1>Please: create an <a href="/newAccount">New Account</a> or login with existing one.</h1>
+                </div>
+            <% } %>
+        </div>
+
+        <div class="col-sm-4">
+            <div class="well">
+                <% if(USERNAME){ %>
+                    <% include partials/profile %>
+                <% }else{ %>
+                    <h3>Login with existing account</h3>
+                    <% include partials/login %>
+                <% } %>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<footer>
+    <% include partials/footer %>
+</footer>
+
+</body>
+</html>

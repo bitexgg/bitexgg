@@ -2,12 +2,14 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const VERSION = 0.2;
 const DEV_ENV = 1;
-let ENDPOINT = 'wss.bitex.gg'; // choose a router near you
+let ENDPOINT = 'api.bitex.gg'; // choose a router near you
 const WSS_PROTO = 'wss';
 const WSS_PORT = 443;
 const UUID = require('uuid');
+
 const WebSocketClient = require('websocket').client;
 const client = new WebSocketClient({autoConnect: true});
+
 let API, API_KEY, CALLBACK, CACHE = {};
 let config_loaded = false;
 let AUTH; // keep data of authenticated user
@@ -23,7 +25,7 @@ module.exports = {
     publicEndpoint: publicEndpoint,
     publicEndpoints: publicEndpoints,
     connect: connect,
-    api: call,
+    api: api,
     critical: tx,
     red: red,
     blue: blue,
@@ -54,7 +56,10 @@ module.exports = {
     sendMoneyTo: sendMoneyTo,
     on: on,
     balanceHistoryDeposits: balanceHistoryDeposits,
-    balanceHistoryWithdraw: balanceHistoryWithdraw
+    balanceHistoryWithdraw: balanceHistoryWithdraw,
+    cfg: cfg,
+    nl2br: nl2br,
+    myLocalGateways: myLocalGateways
 };
 
 let API_DEBUG = false;
@@ -66,9 +71,16 @@ function init(path, arg_debug) {
     } else {
         CONFIG_FILE_NAME = path;
     }
-    API_DEBUG = true;
+    API_DEBUG = arg_debug;
     // load config, to check if we have api key stored.
+
     config_load();
+    let SECRET = cfg('SECRET');
+    if (!SECRET) {
+        SECRET = sha256(uuid());
+        config_save('SECRET', SECRET);
+        yellow('NO SECRET FOUND, GENERATING NEW ONE TO USE ON COOKIES... ' + SECRET);
+    }
 }
 
 function locale() {
@@ -186,7 +198,7 @@ let FD_INDEX = 0;
 
 function ws_init(url) {
     client.on('connectFailed', function (error) {
-        console.log('FATAL: CONNECT - ', error.toString());
+        console.log('FATAL: CONNECT - ' + url, error.toString());
         process.exit(3);
     });
 
@@ -383,19 +395,19 @@ function fd_cb(i, r) {
 }
 
 function call(proc_id, args, callback, debug, ignore_error, is_gr, cache_ttl) {
-    fd_call(proc_id, args, callback, debug, ignore_error, is_gr, false, cache_ttl);
+    fd_call(fd, fd.API, fd.API_KEY, fd.client_id, proc_id, args, callback, debug, ignore_error, is_gr, false, cache_ttl);
 }
 
 function tx(proc_id, args, callback, debug, ignore_error, is_gr, cache_ttl) {
-    fd_call(proc_id, args, callback, debug, ignore_error, is_gr, true, cache_ttl);
+    fd_call(fd, fd.API, fd.API_KEY, fd.client_id, proc_id, args, callback, debug, ignore_error, is_gr, true, cache_ttl);
 }
 
 function cache(cache_ttl, proc_id, args, callback, debug) {
-    fd_call(proc_id, args, callback, debug, false, false, false, cache_ttl);
+    fd_call(fd, fd.API, fd.API_KEY, fd.client_id, proc_id, args, callback, debug, false, false, false, cache_ttl);
 }
 
 function cache_gr(cache_ttl, proc_id, args, callback, debug) {
-    fd_call(proc_id, args, callback, debug, false, true, false, cache_ttl);
+    fd_call(fd, fd.API, fd.API_KEY, fd.client_id, proc_id, args, callback, debug, false, true, false, cache_ttl);
 }
 
 function gr(proc_id, args, callback, debug, ignore_error, cache_ttl) {
@@ -484,8 +496,15 @@ function white(...args) {
     console.log(colors.fg.White, ...args, colors.Reset);
 }
 
+function api(_API, _API_KEY, _client_id, proc_id, args, callback, debug, ignore_error, is_gr, cache_ttl) {
+    console.log(proc_id, args);
+    fd_call(fd, _API, _API_KEY, _client_id,
+        proc_id, args, callback, debug, ignore_error, is_gr, false, cache_ttl);
+}
 
-function fd_call(id, args, callback, debug, ignore_error, is_gr, is_tx, cache_ttl) {
+function fd_call(fd, _API, _API_KEY, _client_id,
+                 id, args, callback, debug, ignore_error, is_gr, is_tx, cache_ttl) {
+
     const ts = (new Date()).getTime();
     const ttl = Math.round(ts);
     let i = 0;
@@ -515,15 +534,16 @@ function fd_call(id, args, callback, debug, ignore_error, is_gr, is_tx, cache_tt
         }
     }
     if (debug) {
+        yellow('DEBUG> API' + _API + ' client_id=' + _client_id);
         let strlog = 'wss-rpc> ' + str;
         if (cache_ttl)
-            green(strlog);
+            green('CACHED: ' + strlog);
         else
-            red(strlog);
+            red('NO-CACHE: ' + strlog);
         if (callback)
             call_cb[i][1] = str; // debug
     }
-    emit(fd, 'system', 'call', arg);
+    emit(fd, _API, _API_KEY, _client_id, 'system', 'call', arg, debug);
 }
 
 function system_callback(fd, cb, data) {
@@ -534,7 +554,7 @@ function system_callback(fd, cb, data) {
     const callback = args[0];
     const debug = args[1];
     const ignore_error = args[2];
-    //const is_gr = args[3];
+    const is_gr = args[3];
     //const is_tx = args[4];
 
     if (debug) {
@@ -550,7 +570,9 @@ function system_callback(fd, cb, data) {
         }
     }
 
-    const result = data;
+    let result = data;
+    if(is_gr && result && result[0])
+        result = result[0]; // one row only
 
     const cache_ttl = args[7];
     if (cache_ttl > 0) {
@@ -569,67 +591,71 @@ function system_callback(fd, cb, data) {
 
 }
 
-function emit(fd, module_id, event_id, data, debug_id, arg_r) {
+
+function emit(fd, _API, _API_KEY, _client_id, module_id, event_id, data, debug, arg_r) {
     if (!fd) {
         console.log(' FD ERROR OFFLINE.');
         return;
     }
     let r = arg_r || {};
     if (!module_id) {
-        console.log(fd.DEBUG_ID + '> emit error ' + debug_id + ' > ! module_id');
+        console.log('> emit error> ! module_id');
         return;
     }
     if (!event_id) {
-        console.log(fd.DEBUG_ID + '> emit error ' + debug_id + ' > ! event_id');
+        console.log('> emit error> ! event_id');
         return;
     }
-    if (!fd.API) {
-        console.log(fd.DEBUG_ID + '> emit error ' + debug_id + ' > ! fd.API');
+    if (!_API) {
+        console.log('> emit error> ! _API');
         return;
     }
-    if (!fd.API_KEY) {
-        console.log(fd.DEBUG_ID + '> emit error ' + debug_id + ' > ! fd.API_KEY');
+    if (!_API_KEY) {
+        console.log('> emit error> ! _API_KEY');
         return;
     }
     r.module_id = module_id;
     r.event_id = event_id;
-    r.client_id = fd.client_id;
+    r.client_id = _client_id;
     r.ts = timestamp();
-    r.t = DEV_ENV ? 1 : 0; //show rpc calls
+    r.t = 2; //2: multiple api per connection
     r.__ENV_TEST = DEV_ENV ? 1 : 0; //show rpc calls
     r.session_id = 1; // use client_id insteand of user_uid
+    r.API = _API; // use client_id insteand of user_uid
     if (data && data[2])
         r.event = data[2];
-
-    if (fd.API && fd.API_KEY) {
+    let HMAC_STR;
+    if (_API && _API_KEY) {
         let hmac_arg = [];
         hmac_arg.push(r.module_id);
         hmac_arg.push(r.event_id);
-        hmac_arg.push(fd.client_id);
+        hmac_arg.push(_client_id);
         hmac_arg.push(r.ts);
         hmac_arg.push(r.t);
-        hmac_arg.push(fd.API);
+        hmac_arg.push(_API);
         if (data[1])
             hmac_arg.push(JSON.stringify(data[1]));
 
-        const str = hmac_arg.join('/');
+        HMAC_STR = hmac_arg.join('/');
         //console.log(str);
 
-        r.HMAC = crypto.createHmac('sha256', fd.API_KEY)
-            .update(str).digest('hex');
+        r.HMAC = crypto.createHmac('sha256', _API_KEY)
+            .update(HMAC_STR).digest('hex');
     }
     if (!data) {
         data = {};
     }
     r.data = data;
-    if (debug_id) {
-        //blue( fd.DEBUG_ID+'> fd '+fd.API+':'+fd.API_KEY+' > -----------------------------------------------------------');
-        //blue( fd.DEBUG_ID+'> EMIT '+debug_id+'@'+module_id+'.'+event_id+' > -----------------------------------------------------------');
-        //console.log(r);
-        //magenta( fd.DEBUG_ID+'> EMIT '+debug_id+'@'+module_id+'.'+event_id+' < -----------------------------------------------------------');
-    }
     const str = JSON.stringify(r);
-    //console.log(r);
+    if (debug) {
+        yellow('> _API=' + _API + ' =_API_KEY' + _API_KEY);
+        yellow('> _API_KEY=' + _API_KEY);
+        yellow('> r.HMAC=' + r.HMAC);
+        yellow('> HMAC_STR=' + HMAC_STR);
+        console.log(str);
+        //console.log(r);
+        //magenta( '> EMIT '+debug_id+'@'+module_id+'.'+event_id+' < -----------------------------------------------------------');
+    }
     fd.send(str);
 }
 
@@ -713,6 +739,7 @@ function config_load() {
 
     if (CONFIG_DATA.ENDPOINT) {
         ENDPOINT = CONFIG_DATA.ENDPOINT;
+        console.log('- ENDPOINT: ' + ENDPOINT);
     }
 
     if (CONFIG_DATA.API) {
@@ -742,12 +769,12 @@ function GET(uri, cb, args) {
     const headers = {
         'User-Agent': 'v2/bih/' + VERSION + '/' + API + '/us/en',
         'Content-Type': 'application/x-www-form-urlencoded'
-    }
+    };
 
     const options = {
         method: 'GET',
         headers: headers
-    }
+    };
 
     https.get(url, options, function (res) {
         let data = '';
@@ -841,6 +868,9 @@ function publicAccountCreate_with_country_id(USERNAME, EMAIL, PASSWORD, LANG, CO
     // WARNING: do not try to create too much account.
     // You get blocked by DDoS protection.
     // TTL: 1 account per minute.
+
+    // to raise this limit, ask: talk-with@bitex.gg
+
     let ACCOUNT = {};
     ACCOUNT.lang = LANG;
     ACCOUNT.username = USERNAME;
@@ -953,10 +983,11 @@ function on_balance_changed(BalanceId, Balance) {
     //yellow('On Balance Change: ' + BalanceId + ') ' + Symbol + '=' + Balance);
 }
 
-function SymbolOf( BalanceId ){
+function SymbolOf(BalanceId) {
     return BALANCE_SYMBOL_BY_ID[BalanceId];
 }
-function BalanceIdOfSymbol( Symbol ){
+
+function BalanceIdOfSymbol(Symbol) {
     return BALANCE_CACHE_BY_SYMBOL[Symbol].id;
 }
 
@@ -1024,7 +1055,7 @@ function sendMoneyTo(DestinationAccountId, Symbol, Amount, TransactionId, cb, de
     }, debug);
 }
 
-function balanceHistoryDeposits( BalanceId, cb, debug ){
+function balanceHistoryDeposits(BalanceId, cb, debug) {
     if (!BalanceId) return red('balanceHistoryDeposits: No BalanceId.');
     if (!cb) return red('balanceHistoryDeposits: No cb.');
     let args = [];
@@ -1032,10 +1063,27 @@ function balanceHistoryDeposits( BalanceId, cb, debug ){
     call('ex.api_account_ex_deposits', args, cb, debug);
 }
 
-function balanceHistoryWithdraw( BalanceId, cb, debug ){
+function balanceHistoryWithdraw(BalanceId, cb, debug) {
     if (!BalanceId) return red('balanceHistoryWithdraw: No BalanceId.');
     if (!cb) return red('balanceHistoryWithdraw: No cb.');
     let args = [];
     args.push(BalanceId);
     call('ex.api_account_ex_withdrawns', args, cb, debug);
+}
+
+function myLocalGateways(country, currency, cb, debug) {
+    if (!cb) return red('myLocalGateways: No cb.');
+    let args = [1, country, currency];
+    call('payment.api_account_gw_list', args, cb, debug);
+}
+
+function nl2br(str){
+    if( ! str ) return '';
+    //console.log('nl2br', typeof str,str);
+    if( typeof str === 'string')
+        return str.replace('\n', '<br>\n');
+    if( typeof str === 'object')
+        return str.toString('utf8').replace('\n', '<br>\n');
+
+    return str;
 }

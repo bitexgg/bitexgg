@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <% include partials/header %>
+</header>
+
+<main>
+    <h3>Make a new deposit</h3>
+    <div class="row">
+        <% for(let i in result){ %>
+            <% const r = result[i] %>
+            <div class="col-sm-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="far fa-money-bill-alt"></i>
+                        <%= r.gw_title %>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title"><%= r.gw_location %> - <%= r.S %></h5>
+                        <p class="card-text">
+                            <%= r.gw_payment_method %> <br/>
+                            Min: <%= r.gw_min_tx %>, Max: <%= r.BALANCE %>
+                        </p>
+                        <a href="/sendFiatVia/<%= r.gw_id %>" class="btn btn-primary">
+                            <i class="fas fa-chevron-circle-right"></i>
+                            Proceed with deposit</a>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+    </div>
+</main>
+
+<footer>
+    <% include partials/footer %>
+</footer>
+
+</body>
+</html>

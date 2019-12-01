@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include partials/head %>
+</head>
+<body class="container">
+
+<header>
+    <% include partials/header %>
+</header>
+
+<main>
+
+        <h3>Wallet Balance of <%= USERNAME %> (AccountId: <%=AccountID%>) </h3>
+        <hr/>
+
+        <table class="table table-striped table-bordered table-hover">
+            <thead class="thead-dark">
+            <tr>
+                <th scope="col">Deposit Address (use this)</th>
+                <th scope="col">Balance</th>
+                <th scope="col">Type</th>
+                <th scope="col">Symbol</th>
+                <th scope="col">Internal AddressId</th>
+                <th scope="col">Send</th>
+            </tr>
+            </thead>
+            <tbody>
+            <% for( let i in tree){ %>
+                <% const r = tree[i] %>
+                <tr >
+                    <td scope="row"><b><%= r.addr %> </b></td>
+                    <td style="background-color:<%= (r.BALANCE>0)?'#CDEB8B':'' %>"><%= r.BALANCE %></td>
+                    <td><%= r.type_name %></td>
+                    <td><%= r.name %></td>
+                    <td><%= r.id %></td>
+                    <td nowrap>
+                        <% if(r.BALANCE>0){ %>
+                        <a href="/sendMoneyTo/<%= r.id %>" class="btn btn-primary" href="#" role="button"><i
+                                    class="fas fa-hand-holding-usd"></i> SendMoney</a>
+                        <% } %>
+                    </td>
+                </tr>
+            <% } %>
+            </tbody>
+        </table>
+
+</main>
+
+<footer>
+    <% include partials/footer %>
+</footer>
+
+</body>
+</html>

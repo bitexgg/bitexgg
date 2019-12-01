@@ -1,0 +1,52 @@
+<form method="post" action="<% if(TYPE!='edit'){ %>/api/v1/newAccount<% }else{ %>/api/v1/updateAccount<% } %>">
+    <div class="form-group">
+        <label for="USERNAME">Email address</label>
+        <input type="text" required class="form-control" id="USERNAME" name="USERNAME" aria-describedby="emailHelp"
+               placeholder="Your name" value="<%=USERNAME%>">
+    </div>
+    <div class="form-group">
+        <label for="EMAIL">Email address</label>
+        <input type="email" required class="form-control" id="EMAIL" name="EMAIL" aria-describedby="emailHelp"
+               placeholder="Enter email" value="<%=EMAIL%>">
+    </div>
+    <div class="form-group">
+        <label for="PASSWORD">Password</label>
+        <input type="password" class="form-control" id="PASSWORD" name="PASSWORD" placeholder="Password"
+               value="<%=PASSWORD%>" <% if(TYPE!='edit'){ %>required<% } %> >
+        <input type="password" class="form-control" id="PASSWORD1" name="PASSWORD1" placeholder="Repeat password"
+               value="<%=PASSWORD%>" <% if(TYPE!='edit'){ %>required<% } %> >
+    </div>
+
+    <div class="form-group">
+        <label for="DISCORD">Discord</label>
+        <input type="text" required class="form-control" id="DISCORD" name="DISCORD" placeholder="ex: AbcUser#123" value="<%=DISCORD%>">
+    </div>
+
+    <div class="form-group">
+        <label for="TELEGRAM">Telegram</label>
+        <input type="text" required class="form-control" id="TELEGRAM" name="TELEGRAM" placeholder="ex: AbcUser" value="<%=TELEGRAM%>">
+    </div>
+    <div class="form-group">
+        <label for="LANG">Language</label>
+        <input type="text" required class="form-control" id="LANG" name="LANG" placeholder="ex: pt-BR" value="<%=LANG%>">
+    </div>
+    <div class="form-group">
+        <label for="LANG">Country</label>
+        <input type="text" required class="form-control" id="COUNTRY" name="COUNTRY" placeholder="ex: pt-BR" value="<%=COUNTRY%>">
+    </div>
+
+<% if(TYPE!='edit'){ %>
+    <div class="form-group form-check">
+        <input type="checkbox" required value="1" class="form-check-input" id="terms" name="terms">
+        <label class="form-check-label" for="terms">Accept Terms</label>
+    </div>
+    <% } %>
+
+    <button type="submit" class="btn btn-primary">
+        <% if(TYPE!='edit'){ %>
+            <i class="fas fa-user-plus"></i> Create Account
+        <% }else{ %>
+            <i class="fas fa-user-edit"></i> Update Account
+        <% } %>
+    </button>
+</form>
